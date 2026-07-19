@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse — Application Specification V1.0</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  /* ── Tokens ── */
+  :root {
+    --ink:         #1E1A14;
+    --paper:       #F7F3EC;
+    --paper-warm:  #EEE8DC;
+    --paper-ruled: #E6DFD0;
+    --margin:      #D4CBB8;
+    --ruled-line:  #D9D0BE;
+    --accent:      #7C5C38;
+    --accent-warm: #A0724A;
+    --accent-light:#C4956A;
+    --red:         #B85450;
+    --green:       #4A7C5C;
+    --blue:        #3A5C82;
+    --text-body:   #2C2418;
+    --text-mid:    #6B5C44;
+    --text-faint:  #9C8C74;
+    --text-margin: #B8A890;
+    --border:      #C8BCA8;
+
+    --ff-display: 'Lora', Georgia, serif;
+    --ff-body:    'Inter', system-ui, sans-serif;
+    --ff-mono:    'JetBrains Mono', monospace;
+
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+
+  /* ── Reset ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── Page ── */
+  body {
+    background: var(--paper);
+    color: var(--text-body);
+    font-family: var(--ff-body);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  /* ── Layout: notebook with left margin ── */
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ── Cover ── */
+  .cover {
+    border-bottom: 3px double var(--accent);
+    padding: 56px 0 40px;
+    margin-bottom: 48px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 24px;
+  }
+
+  .cover-eyebrow {
+    font-family: var(--ff-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+    margin-bottom: 12px;
+  }
+
+  .cover-title {
+    font-family: var(--ff-display);
+    font-size: 52px;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  .cover-subtitle {
+    font-family: var(--ff-display);
+    font-style: italic;
+    font-size: 19px;
+    color: var(--text-mid);
+    margin-top: 10px;
+  }
+
+  .cover-meta {
+    font-family: var(--ff-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    line-height: 2;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .cover-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .pill {
+    font-family: var(--ff-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 100px;
+    background: var(--paper-warm);
+    border: 1px solid var(--border);
+    color: var(--text-mid);
+  }
+
+  .pill--accent {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* ── TOC ── */
+  .toc {
+    background: var(--paper-warm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px 32px;
+    margin-bottom: 56px;
+  }
+
+  .toc-title {
+    font-family: var(--ff-display);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 32px;
+  }
+
+  .toc-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: 13px;
+    color: var(--text-mid);
+    border-bottom: 1px dotted var(--ruled-line);
+  }
+
+  .toc-num {
+    font-family: var(--ff-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    width: 20px;
+    flex-shrink: 0;
+  }
+
+  .toc-label { color: var(--text-body); }
+
+  /* ── Sections ── */
+  .section {
+    margin-bottom: 56px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--accent);
+  }
+
+  .section-num {
+    font-family: var(--ff-mono);
+    font-size: 11px;
+    color: var(--accent-light);
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  .section-title {
+    font-family: var(--ff-display);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+
+  h3 {
+    font-family: var(--ff-display);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 32px 0 12px;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent-light);
+  }
+
+  h4 {
+    font-family: var(--ff-body);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    margin: 24px 0 8px;
+  }
+
+  p {
+    margin-bottom: 12px;
+    color: var(--text-body);
+  }
+
+  /* ── Tables ── */
+  .table-wrap {
+    overflow-x: auto;
+    margin: 16px 0 24px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+
+  thead tr {
+    background: var(--paper-warm);
+    border-bottom: 2px solid var(--border);
+  }
+
+  th {
+    font-family: var(--ff-body);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    padding: 10px 14px;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--ruled-line);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  tbody tr:hover { background: var(--paper-warm); }
+
+  /* ── Code ── */
+  pre {
+    background: var(--ink);
+    color: #E8DCC8;
+    font-family: var(--ff-mono);
+    font-size: 12.5px;
+    line-height: 1.65;
+    padding: 20px 24px;
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    margin: 16px 0 24px;
+    border-left: 3px solid var(--accent);
+  }
+
+  code {
+    font-family: var(--ff-mono);
+    font-size: 12px;
+    background: var(--paper-warm);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--accent);
+  }
+
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+  }
+
+  /* Syntax colours */
+  .kw  { color: #C4956A; }   /* keyword / type */
+  .str { color: #8DB87A; }   /* string */
+  .cm  { color: #7A7060; }   /* comment */
+  .nm  { color: #7CAFC4; }   /* name / field */
+  .op  { color: #C87464; }   /* operator */
+
+  /* ── Note boxes ── */
+  .note {
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    margin: 16px 0 24px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .note-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .note--amber {
+    background: #FDF5E6;
+    border-left: 3px solid var(--accent-warm);
+    color: #5C3D18;
+  }
+
+  .note--blue {
+    background: #EBF2FA;
+    border-left: 3px solid var(--blue);
+    color: #1E3050;
+  }
+
+  .note--green {
+    background: #EBF5EE;
+    border-left: 3px solid var(--green);
+    color: #1E3C2A;
+  }
+
+  .note--red {
+    background: #FBEEEE;
+    border-left: 3px solid var(--red);
+    color: #4A1A1A;
+  }
+
+  /* ── Method badges ── */
+  .badge {
+    display: inline-block;
+    font-family: var(--ff-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  .badge--get    { background: #E8F4E8; color: #2E6B3E; border: 1px solid #B8D8C0; }
+  .badge--post   { background: #E8EEFA; color: #2E4A7A; border: 1px solid #B0C4E8; }
+  .badge--patch  { background: #FBF4E8; color: #7A5020; border: 1px solid #E0C89A; }
+  .badge--delete { background: #FBEEEE; color: #7A2828; border: 1px solid #E0AAAA; }
+
+  /* ── Screen wireframe boxes ── */
+  .wireframe-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin: 20px 0 28px;
+  }
+
+  .wireframe {
+    background: var(--paper-warm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .wireframe-bar {
+    background: var(--ink);
+    color: var(--accent-light);
+    font-family: var(--ff-mono);
+    font-size: 10px;
+    padding: 8px 12px;
+    letter-spacing: 0.06em;
+  }
+
+  .wireframe-body {
+    padding: 12px;
+    font-size: 12px;
+    color: var(--text-mid);
+    line-height: 1.8;
+    font-family: var(--ff-mono);
+    min-height: 180px;
+  }
+
+  .wf-line {
+    display: block;
+    height: 10px;
+    background: var(--border);
+    border-radius: 3px;
+    margin: 6px 0;
+  }
+
+  .wf-line--short { width: 55%; }
+  .wf-line--mid   { width: 75%; }
+  .wf-line--full  { width: 100%; }
+  .wf-line--accent { background: var(--accent-light); width: 40%; }
+
+  /* ── Section group label ── */
+  .group-label {
+    font-family: var(--ff-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 40px 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--ruled-line);
+  }
+
+  /* ── Phase build cards ── */
+  .phase-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .phase-card {
+    background: var(--paper-warm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+  }
+
+  .phase-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .phase-num {
+    font-family: var(--ff-mono);
+    font-size: 10px;
+    color: #fff;
+    background: var(--accent);
+    padding: 3px 8px;
+    border-radius: 100px;
+  }
+
+  .phase-title {
+    font-family: var(--ff-display);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .phase-weeks {
+    font-family: var(--ff-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+
+  .phase-items {
+    list-style: none;
+    font-size: 13px;
+    color: var(--text-mid);
+    line-height: 1.8;
+  }
+
+  .phase-items li::before {
+    content: '→ ';
+    color: var(--accent-light);
+    font-family: var(--ff-mono);
+  }
+
+  /* ── Colour token swatches ── */
+  .palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 16px 0 24px;
+  }
+
+  .swatch {
+    width: 80px;
+    text-align: center;
+  }
+
+  .swatch-block {
+    height: 40px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(0,0,0,0.1);
+    margin-bottom: 6px;
+  }
+
+  .swatch-label {
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    color: var(--text-faint);
+    display: block;
+  }
+
+  .swatch-name {
+    font-size: 11px;
+    color: var(--text-mid);
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--ruled-line);
+    margin: 32px 0;
+  }
+
+  /* ── Inline list ── */
+  ul.doc-list {
+    padding-left: 20px;
+    margin: 8px 0 16px;
+    color: var(--text-body);
+  }
+
+  ul.doc-list li {
+    margin-bottom: 6px;
+    line-height: 1.6;
+  }
+
+  /* ── Field block ── */
+  .field-block {
+    background: var(--paper-warm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin: 12px 0 20px;
+    font-family: var(--ff-mono);
+    font-size: 12.5px;
+    line-height: 2;
+    color: var(--text-mid);
+  }
+
+  .field-name { color: var(--ink); font-weight: 500; }
+  .field-type { color: var(--blue); }
+  .field-note { color: var(--text-faint); }
+
+  /* ── Tab bar preview ── */
+  .tab-bar {
+    background: var(--ink);
+    border-radius: var(--radius-lg);
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-around;
+    margin: 20px 0 28px;
+    max-width: 360px;
+  }
+
+  .tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-family: var(--ff-mono);
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+  }
+
+  .tab-item--active {
+    color: var(--accent-light);
+  }
+
+  .tab-icon {
+    font-size: 18px;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 2px double var(--accent);
+    font-family: var(--ff-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ── Print / responsive ── */
+  @media (max-width: 640px) {
+    .cover { grid-template-columns: 1fr; }
+    .cover-meta { text-align: left; }
+    .toc-grid { grid-template-columns: 1fr; }
+    .cover-title { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══ COVER ══ -->
+  <div class="cover">
+    <div>
+      <div class="cover-eyebrow">Application Specification · V1.0 Draft</div>
+      <div class="cover-title">Pulse</div>
+      <div class="cover-subtitle">Tasks, meals, and spending — all in one conversation.</div>
+      <div class="cover-pills" style="margin-top:20px;">
+        <span class="pill pill--accent">React Native · Expo</span>
+        <span class="pill">Firebase Auth</span>
+        <span class="pill">Firestore</span>
+        <span class="pill">Anthropic API</span>
+        <span class="pill">Multi-user</span>
+        <span class="pill">Mobile + Web</span>
+      </div>
+    </div>
+    <div class="cover-meta">
+      5 Screens<br>
+      3 Modules<br>
+      1 Chat surface<br>
+      Firebase stack<br>
+      June 2026
+    </div>
+  </div>
+
+  <!-- ══ TOC ══ -->
+  <div class="toc">
+    <div class="toc-title">Contents</div>
+    <div class="toc-grid">
+      <div class="toc-item"><span class="toc-num">01</span><span class="toc-label">Purpose &amp; Concept</span></div>
+      <div class="toc-item"><span class="toc-num">06</span><span class="toc-label">Firestore Data Model</span></div>
+      <div class="toc-item"><span class="toc-num">02</span><span class="toc-label">Design Principles</span></div>
+      <div class="toc-item"><span class="toc-num">07</span><span class="toc-label">API &amp; Cloud Functions</span></div>
+      <div class="toc-item"><span class="toc-num">03</span><span class="toc-label">Tech Stack</span></div>
+      <div class="toc-item"><span class="toc-num">08</span><span class="toc-label">Auth Flow</span></div>
+      <div class="toc-item"><span class="toc-num">04</span><span class="toc-label">Visual Identity</span></div>
+      <div class="toc-item"><span class="toc-num">09</span><span class="toc-label">Claude Integration</span></div>
+      <div class="toc-item"><span class="toc-num">05</span><span class="toc-label">Screen Architecture</span></div>
+      <div class="toc-item"><span class="toc-num">10</span><span class="toc-label">Build Sequence</span></div>
+    </div>
+  </div>
+
+  <!-- ══ 01 PURPOSE ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <span class="section-title">Purpose &amp; Concept</span>
+    </div>
+
+    <p>Pulse is a personal life-management app built around a single idea: <strong>everything you track daily should be accessible through one conversation.</strong> You tell Claude what you did, what you ate, or what you spent — and it logs it, asks the right follow-up, and confirms before writing anything. The structured screens (tasks, meals, spends) exist to review, edit, and get an overview — but adding and updating happens naturally in chat.</p>
+
+    <p>The app answers three questions depending on where you are:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Screen</th><th>Question it answers</th><th>Primary mode</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Chat</strong></td><td>What do I need to tell Claude right now?</td><td>Input &amp; AI interaction</td></tr>
+          <tr><td><strong>Tasks</strong></td><td>What do I need to do today, and am I covering all my domains?</td><td>Review &amp; drag-reorder</td></tr>
+          <tr><td><strong>Meals</strong></td><td>What have I eaten today and how does it track against my goals?</td><td>Review &amp; manual edit</td></tr>
+          <tr><td><strong>Spends</strong></td><td>Where is my money going and am I within my budgets?</td><td>Review &amp; category breakdown</td></tr>
+          <tr><td><strong>Recurring</strong></td><td>Have I done my standing commitments today?</td><td>Quick check-off</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note note--amber">
+      <span class="note-icon">📓</span>
+      <div><strong>Relationship to WMS:</strong> Pulse is a sibling prototype — same owner, different persona. Where WMS is a medieval counsellor for life intent and habits, Pulse is a warm, personal notebook for daily operational life. The two may converge in a later phase; for now they are separate apps with shared architectural thinking.</div>
+    </div>
+  </div>
+
+  <!-- ══ 02 DESIGN PRINCIPLES ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <span class="section-title">Design Principles</span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Principle</th><th>What it means in practice</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Chat is the input layer</strong></td>
+            <td>Adding and modifying data happens in chat. Structured screens are for overview and review, not primary data entry. Claude is the form.</td>
+          </tr>
+          <tr>
+            <td><strong>Propose, don't execute</strong></td>
+            <td>When Claude interprets a message as a data action (add task, log meal, record spend), it shows a confirmation card before writing to Firestore. The user always has the final say.</td>
+          </tr>
+          <tr>
+            <td><strong>One context window, full picture</strong></td>
+            <td>Every chat turn includes a live snapshot of all three modules (tasks, today's meals, today's spends). Claude never reasons from stale data. No module switching — Claude figures out what you're talking about.</td>
+          </tr>
+          <tr>
+            <td><strong>Work and personal live together</strong></td>
+            <td>Tasks are grouped visually into Work and Personal sections — same list, same priority buckets, same Claude context. No context switching required.</td>
+          </tr>
+          <tr>
+            <td><strong>Recurring tasks are structurally separate</strong></td>
+            <td>Recurring habits live in their own Firestore collection, on their own screen, with insert/delete completion model. History is never lost.</td>
+          </tr>
+          <tr>
+            <td><strong>Claude infers macros — user corrects</strong></td>
+            <td>Meal logging is free-text. Claude returns structured calorie/macro estimates. The user sees the estimate and can correct any value before it's saved. No food database lookup — Claude handles Indian meals, mixed dishes, and home cooking natively.</td>
+          </tr>
+          <tr>
+            <td><strong>Budgets are per-category, per-period</strong></td>
+            <td>Each spend category has its own budget period (monthly or weekly). Progress is shown as a bar, not a raw number. Overspend is surfaced visually, not buried in a table.</td>
+          </tr>
+          <tr>
+            <td><strong>Security at the database level</strong></td>
+            <td>Firestore Security Rules enforce per-user data isolation. Application code does not re-implement permission checks. A bug in a Cloud Function cannot leak another user's data.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ 03 TECH STACK ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <span class="section-title">Tech Stack &amp; Rationale</span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Layer</th><th>Choice</th><th>Rationale</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Mobile App</strong></td>
+            <td>React Native (Expo)</td>
+            <td>Native feel on iOS and Android — smooth gestures, haptics, proper swipe actions. Expo Web gives a functional laptop experience from the same codebase. Single repo, two targets.</td>
+          </tr>
+          <tr>
+            <td><strong>Web (laptop)</strong></td>
+            <td>Expo Web</td>
+            <td>Runs the same React Native code in a browser via react-native-web. Sidebar nav replaces bottom tab bar on wide screens. No second codebase needed.</td>
+          </tr>
+          <tr>
+            <td><strong>Auth</strong></td>
+            <td>Firebase Auth — Email OTP</td>
+            <td>No passwords. <code>sendSignInLinkToEmail</code> sends a magic link; user taps it to authenticate. Multi-user from day one. Works on mobile and web with the same SDK.</td>
+          </tr>
+          <tr>
+            <td><strong>Database</strong></td>
+            <td>Cloud Firestore</td>
+            <td>Document model suits the denormalised shape of this app (tasks with subtasks, meal entries, spend entries). Real-time listeners mean the task list updates live when Claude confirms an action. Security Rules enforce per-user isolation at the DB layer.</td>
+          </tr>
+          <tr>
+            <td><strong>Backend / API</strong></td>
+            <td>Firebase Cloud Functions (Node.js)</td>
+            <td>All Anthropic API calls happen server-side. The <code>ANTHROPIC_API_KEY</code> never reaches the client. Functions also handle budget recalculation and recurring task seeding on schedule.</td>
+          </tr>
+          <tr>
+            <td><strong>AI</strong></td>
+            <td>Anthropic claude-sonnet-4-6</td>
+            <td>Handles intent classification, macro inference, action proposal generation, and conversational response in one call. Best price/quality ratio for this pattern.</td>
+          </tr>
+          <tr>
+            <td><strong>Hosting</strong></td>
+            <td>Firebase Hosting (web) + Expo EAS (mobile)</td>
+            <td>Firebase Hosting deploys the Expo Web build with zero config. EAS Build handles iOS and Android native builds.</td>
+          </tr>
+          <tr>
+            <td><strong>Local dev</strong></td>
+            <td>VS Code + Firebase Emulator Suite</td>
+            <td>Firestore, Auth, and Functions all emulate locally. No cloud reads/writes during development. <code>firebase emulators:start</code> is the only command needed.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Local Development Setup</h3>
+    <pre><span class="cm"># Prerequisites</span>
+node &gt;= 20
+firebase-tools (npm i -g firebase-tools)
+expo-cli (npm i -g expo-cli)
+
+<span class="cm"># Repo structure</span>
+pulse/
+├── app/               <span class="cm"># Expo React Native app</span>
+│   ├── screens/
+│   ├── components/
+│   ├── hooks/
+│   └── lib/
+│       ├── firebase.ts
+│       └── anthropic.ts   <span class="cm"># client — only calls Cloud Functions, never API directly</span>
+├── functions/         <span class="cm"># Firebase Cloud Functions</span>
+│   ├── src/
+│   │   ├── chat.ts        <span class="cm"># Anthropic call handler</span>
+│   │   ├── meals.ts
+│   │   └── scheduled.ts   <span class="cm"># cron: recurring seed, budget reset</span>
+│   └── package.json
+├── firestore.rules
+├── firestore.indexes.json
+├── firebase.json
+└── .env.local         <span class="cm"># ANTHROPIC_API_KEY — never commit</span></pre>
+
+    <div class="note note--blue">
+      <span class="note-icon">💡</span>
+      <div>The Firebase Emulator Suite runs Firestore, Auth, and Functions locally so all development happens offline. The emulator UI at <code>localhost:4000</code> gives a visual table editor equivalent to Supabase's dashboard.</div>
+    </div>
+  </div>
+
+  <!-- ══ 04 VISUAL IDENTITY ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <span class="section-title">Visual Identity</span>
+    </div>
+
+    <p>Pulse uses a <strong>warm notebook aesthetic</strong> — the feeling of a well-used personal planner, not a corporate productivity tool. The palette draws from aged paper, ink, and leather. Typography mixes a grounded serif for headings with a clean sans for body text and a mono face for data.</p>
+
+    <h3>Colour Palette</h3>
+    <div class="palette">
+      <div class="swatch">
+        <div class="swatch-block" style="background:#1C1612;"></div>
+        <span class="swatch-label">#1C1612</span>
+        <span class="swatch-name">Ink</span>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#F5F0E8;"></div>
+        <span class="swatch-label">#F5F0E8</span>
+        <span class="swatch-name">Paper</span>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#EAE2D0;"></div>
+        <span class="swatch-label">#EAE2D0</span>
+        <span class="swatch-name">Paper Warm</span>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#7C5C38;"></div>
+        <span class="swatch-label">#7C5C38</span>
+        <span class="swatch-name">Leather</span>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#C4956A;"></div>
+        <span class="swatch-label">#C4956A</span>
+        <span class="swatch-name">Tan</span>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#D4CBB8;"></div>
+        <span class="swatch-label">#D4CBB8</span>
+        <span class="swatch-name">Ruled Line</span>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#4A7C5C;"></div>
+        <span class="swatch-label">#4A7C5C</span>
+        <span class="swatch-name">Sage (done)</span>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#B85450;"></div>
+        <span class="swatch-label">#B85450</span>
+        <span class="swatch-name">Vermilion (critical)</span>
+      </div>
+    </div>
+
+    <h3>Typography</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Role</th><th>Typeface</th><th>Usage</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Display / Headings</strong></td><td>Lora (serif)</td><td>Screen titles, section headers, the app name. Warm and literary without feeling formal.</td></tr>
+          <tr><td><strong>Body / UI</strong></td><td>Inter</td><td>Task titles, chat messages, labels, buttons. Clean and highly legible at small sizes.</td></tr>
+          <tr><td><strong>Data / Mono</strong></td><td>JetBrains Mono</td><td>Calorie numbers, budget amounts, dates, reference codes. Tabular figures align cleanly.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Signature Element</h3>
+    <p>The single memorable visual element: <strong>ruled lines as section dividers</strong> — thin horizontal lines that look like notebook paper, used to separate Work from Personal in the task list, separate meal entries by date, and separate budget categories. The lines use the <code>Ruled Line</code> colour and appear at 1px with a slight opacity fade at the edges. This is not decoration — it literally evokes the notebook the app is named after.</p>
+
+    <h3>Dark Mode</h3>
+    <p>Dark mode inverts to an ink-on-dark-paper palette: background <code>#1C1612</code>, surface <code>#2A2018</code>, text <code>#F0E8D8</code>, accent <code>#C4956A</code>. The ruled-line motif becomes visible as subtle lighter lines on the dark surface. Dark mode is the default for the mobile app; light mode is the default for web (laptop).</p>
+  </div>
+
+  <!-- ══ 05 SCREEN ARCHITECTURE ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <span class="section-title">Screen Architecture</span>
+    </div>
+
+    <p>Five screens. Bottom tab bar on mobile; sidebar navigation on web (laptop). The tab bar is the <em>only</em> persistent navigation — no nested nav stacks except for the Task Drawer (a slide-up sheet from the Tasks screen).</p>
+
+    <div class="tab-bar">
+      <div class="tab-item tab-item--active"><span class="tab-icon">💬</span>Chat</div>
+      <div class="tab-item"><span class="tab-icon">✓</span>Tasks</div>
+      <div class="tab-item"><span class="tab-icon">🍽</span>Meals</div>
+      <div class="tab-item"><span class="tab-icon">₹</span>Spends</div>
+      <div class="tab-item"><span class="tab-icon">↺</span>Recurring</div>
+    </div>
+
+    <!-- 5.1 Chat -->
+    <h3>5.1 Chat Screen</h3>
+    <p>The default landing screen. A full-width conversation surface. Claude has full context of all three modules on every turn — tasks (all active, including subtasks and domain), today's meal entries with running macro totals, and today's spends with budget consumption per category.</p>
+
+    <h4>Chat behaviours</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>User says</th><th>Claude does</th><th>Renders</th></tr></thead>
+        <tbody>
+          <tr><td>"Add call Priya to my work tasks for today"</td><td>Infers: create task, domain=Work, bucket=today</td><td>Action confirmation card</td></tr>
+          <tr><td>"I had dal rice for lunch, maybe 400g"</td><td>Estimates calories + macros from free text</td><td>Meal confirmation card with editable values</td></tr>
+          <tr><td>"Spent 850 on groceries"</td><td>Infers category=Groceries, amount=850</td><td>Spend confirmation card</td></tr>
+          <tr><td>"What's my spend looking like this month?"</td><td>Summarises category totals vs budgets from context</td><td>Text response with inline numbers</td></tr>
+          <tr><td>"Move the vendor call to tomorrow"</td><td>Finds the task, proposes bucket update</td><td>Action confirmation card</td></tr>
+          <tr><td>"Am I hitting my protein today?"</td><td>Reads today's meal context, gives assessment</td><td>Text response</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>Action confirmation card</h4>
+    <p>When Claude proposes a data write, it emits a structured card below its message bubble. The card shows:</p>
+    <ul class="doc-list">
+      <li>Action type badge (ADD TASK / LOG MEAL / RECORD SPEND / UPDATE / DELETE)</li>
+      <li>The proposed data fields in a compact summary</li>
+      <li>For meals: editable calorie/macro fields inline in the card before confirming</li>
+      <li>A <strong>Confirm</strong> button and a <strong>Cancel</strong> button</li>
+      <li>Confirming calls the relevant Cloud Function which writes to Firestore</li>
+    </ul>
+
+    <div class="note note--amber">
+      <span class="note-icon">⚠️</span>
+      <div><strong>Claude never writes to Firestore directly from the client.</strong> The client sends the user message to a Cloud Function. The Cloud Function calls the Anthropic API, parses the structured action response, returns it to the client as a proposed action. The client renders the confirmation card. On user confirmation, the client calls a second Cloud Function to execute the write. Two-step, always.</div>
+    </div>
+
+    <h4>Context snapshot sent on every turn</h4>
+    <pre><span class="cm">// system context shape (built server-side per user per turn)</span>
+{
+  <span class="nm">tasks</span>: {
+    <span class="nm">work</span>: [ { id, title, bucket, is_critical, domain, subtasks[] } ],
+    <span class="nm">personal</span>: [ { id, title, bucket, is_critical, domain, subtasks[] } ]
+  },
+  <span class="nm">recurring</span>: [ { id, title, completed_today, streak } ],
+  <span class="nm">meals_today</span>: {
+    <span class="nm">entries</span>: [ { id, description, meal_type, cal, protein_g, carbs_g, fat_g, logged_at } ],
+    <span class="nm">totals</span>: { cal, protein_g, carbs_g, fat_g }
+  },
+  <span class="nm">spends_today</span>: [ { id, amount, category, note, logged_at } ],
+  <span class="nm">budgets</span>: [ { category, period, budget_amount, spent_this_period, remaining } ]
+}</pre>
+
+    <!-- 5.2 Tasks -->
+    <h3>5.2 Tasks Screen</h3>
+    <p>The daily task management surface. Two view modes toggled by a segmented control at the top: <strong>Priority view</strong> (default) and <strong>Domain view</strong>. Within each view, tasks are grouped into Work and Personal sections separated by a ruled line.</p>
+
+    <h4>Priority view</h4>
+    <ul class="doc-list">
+      <li>Critical tasks pinned at the top of their group (Work critical / Personal critical) with a vermilion flame badge</li>
+      <li>Below: Today / Tomorrow / Later as collapsible labelled sections within each group</li>
+      <li>Manual drag-to-reorder within each bucket (updates <code>priority_rank</code>)</li>
+      <li>Reference date shown as a small chip — display only, never drives order</li>
+    </ul>
+
+    <h4>Domain view</h4>
+    <ul class="doc-list">
+      <li>One collapsible section per domain, sorted by domain <code>sort_order</code></li>
+      <li>Work domains appear first; Personal domains below, separated by a ruled line</li>
+      <li>Critical tasks appear inline within their domain with a flame badge — not pulled into a separate section</li>
+    </ul>
+
+    <h4>Task card</h4>
+    <ul class="doc-list">
+      <li>Title, domain colour chip, date chip (if set), subtask progress chip (e.g. 2/4 sub)</li>
+      <li>Work/Personal label as a small pill on the card</li>
+      <li>Tap title → opens Task Drawer</li>
+      <li>Flame icon → toggles <code>is_critical</code> directly from the list</li>
+      <li>Swipe left → delete</li>
+    </ul>
+
+    <h4>Task Drawer (slide-up sheet)</h4>
+    <ul class="doc-list">
+      <li>Edit: title, critical toggle, reference date, domain, workspace (work/personal), notes</li>
+      <li>Subtasks: add / check off / delete inline</li>
+      <li>Per-task Claude chat: conversation scoped to this single task only. Context: task title, notes, date, critical flag, subtask state.</li>
+      <li>Delete task button</li>
+    </ul>
+
+    <!-- 5.3 Meals -->
+    <h3>5.3 Meals Screen</h3>
+    <p>Daily nutrition overview. The screen defaults to today's date; a date strip at the top allows scrolling back to past days.</p>
+
+    <h4>Daily summary bar</h4>
+    <ul class="doc-list">
+      <li>Horizontal progress bars for Calories, Protein, Carbs, Fat against a user-set daily goal</li>
+      <li>Numbers shown in JetBrains Mono: <code>1240 / 2000 kcal</code></li>
+      <li>Bar colour: sage green below goal, amber near goal, vermilion over</li>
+    </ul>
+
+    <h4>Meal entries list</h4>
+    <ul class="doc-list">
+      <li>Grouped by meal type: Breakfast / Lunch / Dinner / Snack</li>
+      <li>Each entry: description, cal, P/C/F in small mono text</li>
+      <li>Tap entry → edit sheet (all fields editable, including Claude's macro estimates)</li>
+      <li>Swipe left → delete</li>
+      <li>Quick-add button (+) opens a text input — same flow as chat, but scoped to meal logging only</li>
+    </ul>
+
+    <h4>Macro goals</h4>
+    <p>Set once in Profile settings. Used to drive the progress bars. Claude references these goals when answering nutrition questions in chat.</p>
+
+    <!-- 5.4 Spends -->
+    <h3>5.4 Spends Screen</h3>
+    <p>Budget tracker and spend log. Defaults to the current month. A period selector (week / month) at the top switches between the two views — weekly budgets show the current week, monthly budgets show the current month.</p>
+
+    <h4>Budget overview</h4>
+    <ul class="doc-list">
+      <li>Card per category showing: category name, budget period chip (Weekly / Monthly), amount spent vs budget as a progress bar, remaining amount in mono text</li>
+      <li>Overspent categories show in vermilion with an overrun amount</li>
+      <li>Tap category card → drill down to entries list for that category</li>
+    </ul>
+
+    <h4>Spend entries</h4>
+    <ul class="doc-list">
+      <li>Chronological list within a category: amount, note, date</li>
+      <li>Tap entry → edit sheet</li>
+      <li>Swipe left → delete</li>
+    </ul>
+
+    <h4>Category management</h4>
+    <ul class="doc-list">
+      <li>Categories are user-defined (e.g. Groceries, Eating Out, Travel, Subscriptions)</li>
+      <li>Each category has a name, colour, budget amount, and budget period (Weekly or Monthly)</li>
+      <li>Managed from a Settings screen (accessible from Spends header)</li>
+    </ul>
+
+    <!-- 5.5 Recurring -->
+    <h3>5.5 Recurring Screen</h3>
+    <p>Standing commitments — habits and daily routines. Different visual language from Tasks: less "list to clear," more "rhythm to sustain."</p>
+
+    <ul class="doc-list">
+      <li>Daily checklist, grouped by domain</li>
+      <li>Large tap targets for completion toggle</li>
+      <li>7-day dot strip per item (filled = completed, empty = missed)</li>
+      <li>Streak count displayed per item in mono text</li>
+      <li>Marking done = insert a completion document for today's date. Undo = delete that document.</li>
+      <li>No drag reorder, no priority buckets, no critical flag</li>
+      <li>Tap item → notes visible in a small expand; no separate drawer</li>
+    </ul>
+  </div>
+
+  <!-- ══ 06 FIRESTORE DATA MODEL ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <span class="section-title">Firestore Data Model</span>
+    </div>
+
+    <div class="note note--blue">
+      <span class="note-icon">📐</span>
+      <div>Firestore is a document database. Unlike the relational task spec, data here is <strong>denormalised</strong> — subtasks live inside the task document as an array, not in a separate collection. This avoids multi-collection joins and suits Firestore's query model. The trade-off: updating a subtask requires a document write to the parent task.</div>
+    </div>
+
+    <h3>Collection structure</h3>
+    <pre><span class="cm">// Top-level collections (per user, isolated via Security Rules)</span>
+
+<span class="kw">users</span>/{userId}
+  └── Profile document
+
+<span class="kw">users</span>/{userId}/<span class="nm">domains</span>/{domainId}
+  └── Domain documents
+
+<span class="kw">users</span>/{userId}/<span class="nm">tasks</span>/{taskId}
+  └── Task documents (subtasks as array field)
+
+<span class="kw">users</span>/{userId}/<span class="nm">recurring_tasks</span>/{recurringTaskId}
+  └── Recurring task template
+
+<span class="kw">users</span>/{userId}/<span class="nm">recurring_completions</span>/{completionId}
+  └── One doc per completion event (taskId + date)
+
+<span class="kw">users</span>/{userId}/<span class="nm">meal_entries</span>/{entryId}
+  └── One meal entry per doc
+
+<span class="kw">users</span>/{userId}/<span class="nm">spend_entries</span>/{entryId}
+  └── One spend entry per doc
+
+<span class="kw">users</span>/{userId}/<span class="nm">spend_categories</span>/{categoryId}
+  └── Category + budget config
+
+<span class="kw">users</span>/{userId}/<span class="nm">chat_threads</span>/{threadId}
+  └── Thread metadata
+
+<span class="kw">users</span>/{userId}/<span class="nm">chat_threads</span>/{threadId}/<span class="nm">messages</span>/{messageId}
+  └── Individual chat messages</pre>
+
+    <h3>Document schemas</h3>
+
+    <h4>users/{userId}</h4>
+    <div class="field-block">
+      <span><span class="field-name">uid</span>            <span class="field-type">string</span>   <span class="field-note">Firebase Auth UID</span></span><br>
+      <span><span class="field-name">email</span>          <span class="field-type">string</span></span><br>
+      <span><span class="field-name">display_name</span>   <span class="field-type">string</span></span><br>
+      <span><span class="field-name">macro_goals</span>    <span class="field-type">map</span>      <span class="field-note">{ cal, protein_g, carbs_g, fat_g }</span></span><br>
+      <span><span class="field-name">created_at</span>     <span class="field-type">timestamp</span></span>
+    </div>
+
+    <h4>domains/{domainId}</h4>
+    <div class="field-block">
+      <span><span class="field-name">name</span>             <span class="field-type">string</span>   <span class="field-note">e.g. "Logistics", "Finance", "Health"</span></span><br>
+      <span><span class="field-name">color</span>            <span class="field-type">string</span>   <span class="field-note">hex colour for chips</span></span><br>
+      <span><span class="field-name">workspace</span>        <span class="field-type">string</span>   <span class="field-note">"work" | "personal"</span></span><br>
+      <span><span class="field-name">goal_description</span> <span class="field-type">string</span>   <span class="field-note">used in Claude strategy context</span></span><br>
+      <span><span class="field-name">sort_order</span>       <span class="field-type">number</span></span><br>
+      <span><span class="field-name">created_at</span>       <span class="field-type">timestamp</span></span>
+    </div>
+
+    <h4>tasks/{taskId}</h4>
+    <div class="field-block">
+      <span><span class="field-name">title</span>          <span class="field-type">string</span></span><br>
+      <span><span class="field-name">notes</span>          <span class="field-type">string</span></span><br>
+      <span><span class="field-name">domain_id</span>      <span class="field-type">string | null</span>   <span class="field-note">ref to domains collection</span></span><br>
+      <span><span class="field-name">workspace</span>      <span class="field-type">string</span>           <span class="field-note">"work" | "personal"</span></span><br>
+      <span><span class="field-name">is_critical</span>    <span class="field-type">boolean</span></span><br>
+      <span><span class="field-name">bucket</span>         <span class="field-type">string</span>           <span class="field-note">"today" | "tomorrow" | "later"</span></span><br>
+      <span><span class="field-name">reference_date</span> <span class="field-type">string | null</span>   <span class="field-note">ISO date, display only</span></span><br>
+      <span><span class="field-name">priority_rank</span>  <span class="field-type">number</span>           <span class="field-note">float for midpoint reorder</span></span><br>
+      <span><span class="field-name">subtasks</span>       <span class="field-type">array</span>            <span class="field-note">[ { id, title, done, sort_order } ]</span></span><br>
+      <span><span class="field-name">created_at</span>     <span class="field-type">timestamp</span></span><br>
+      <span><span class="field-name">updated_at</span>     <span class="field-type">timestamp</span></span>
+    </div>
+
+    <h4>recurring_tasks/{recurringTaskId}</h4>
+    <div class="field-block">
+      <span><span class="field-name">title</span>      <span class="field-type">string</span></span><br>
+      <span><span class="field-name">notes</span>      <span class="field-type">string</span></span><br>
+      <span><span class="field-name">domain_id</span>  <span class="field-type">string | null</span></span><br>
+      <span><span class="field-name">cadence</span>    <span class="field-type">string</span>   <span class="field-note">"daily" (weekly/monthly in V2)</span></span><br>
+      <span><span class="field-name">active</span>     <span class="field-type">boolean</span></span><br>
+      <span><span class="field-name">sort_order</span> <span class="field-type">number</span></span><br>
+      <span><span class="field-name">created_at</span> <span class="field-type">timestamp</span></span>
+    </div>
+
+    <h4>recurring_completions/{completionId}</h4>
+    <div class="field-block">
+      <span><span class="field-name">task_id</span>    <span class="field-type">string</span>   <span class="field-note">ref to recurring_tasks</span></span><br>
+      <span><span class="field-name">date</span>       <span class="field-type">string</span>   <span class="field-note">ISO date "YYYY-MM-DD"</span></span><br>
+      <span><span class="field-name">logged_at</span>  <span class="field-type">timestamp</span></span>
+    </div>
+    <div class="note note--green">
+      <span class="note-icon">✓</span>
+      <div>A Firestore composite index on <code>(task_id, date)</code> enables the 7-day dot strip query in a single read. A unique constraint is enforced in Security Rules: one completion per task per date.</div>
+    </div>
+
+    <h4>meal_entries/{entryId}</h4>
+    <div class="field-block">
+      <span><span class="field-name">description</span>  <span class="field-type">string</span>   <span class="field-note">free text as entered / confirmed</span></span><br>
+      <span><span class="field-name">meal_type</span>    <span class="field-type">string</span>   <span class="field-note">"breakfast" | "lunch" | "dinner" | "snack"</span></span><br>
+      <span><span class="field-name">cal</span>          <span class="field-type">number</span></span><br>
+      <span><span class="field-name">protein_g</span>    <span class="field-type">number</span></span><br>
+      <span><span class="field-name">carbs_g</span>      <span class="field-type">number</span></span><br>
+      <span><span class="field-name">fat_g</span>        <span class="field-type">number</span></span><br>
+      <span><span class="field-name">date</span>         <span class="field-type">string</span>   <span class="field-note">ISO date "YYYY-MM-DD"</span></span><br>
+      <span><span class="field-name">logged_at</span>    <span class="field-type">timestamp</span></span>
+    </div>
+
+    <h4>spend_categories/{categoryId}</h4>
+    <div class="field-block">
+      <span><span class="field-name">name</span>           <span class="field-type">string</span>   <span class="field-note">e.g. "Groceries", "Eating Out"</span></span><br>
+      <span><span class="field-name">color</span>          <span class="field-type">string</span>   <span class="field-note">hex for category chip</span></span><br>
+      <span><span class="field-name">budget_amount</span>  <span class="field-type">number</span>   <span class="field-note">in user's currency (₹)</span></span><br>
+      <span><span class="field-name">budget_period</span>  <span class="field-type">string</span>   <span class="field-note">"weekly" | "monthly"</span></span><br>
+      <span><span class="field-name">sort_order</span>     <span class="field-type">number</span></span><br>
+      <span><span class="field-name">created_at</span>     <span class="field-type">timestamp</span></span>
+    </div>
+
+    <h4>spend_entries/{entryId}</h4>
+    <div class="field-block">
+      <span><span class="field-name">amount</span>       <span class="field-type">number</span></span><br>
+      <span><span class="field-name">category_id</span>  <span class="field-type">string</span>   <span class="field-note">ref to spend_categories</span></span><br>
+      <span><span class="field-name">note</span>         <span class="field-type">string</span></span><br>
+      <span><span class="field-name">date</span>         <span class="field-type">string</span>   <span class="field-note">ISO date "YYYY-MM-DD"</span></span><br>
+      <span><span class="field-name">logged_at</span>    <span class="field-type">timestamp</span></span>
+    </div>
+
+    <h4>chat_threads/{threadId}</h4>
+    <div class="field-block">
+      <span><span class="field-name">type</span>        <span class="field-type">string</span>   <span class="field-note">"main" | "task_review"</span></span><br>
+      <span><span class="field-name">task_id</span>     <span class="field-type">string | null</span>   <span class="field-note">set for task_review threads</span></span><br>
+      <span><span class="field-name">title</span>       <span class="field-type">string</span>   <span class="field-note">auto-generated from first message</span></span><br>
+      <span><span class="field-name">created_at</span>  <span class="field-type">timestamp</span></span><br>
+      <span><span class="field-name">updated_at</span>  <span class="field-type">timestamp</span></span>
+    </div>
+
+    <h4>chat_threads/{threadId}/messages/{messageId}</h4>
+    <div class="field-block">
+      <span><span class="field-name">role</span>             <span class="field-type">string</span>   <span class="field-note">"user" | "assistant"</span></span><br>
+      <span><span class="field-name">content</span>          <span class="field-type">string</span></span><br>
+      <span><span class="field-name">proposed_actions</span> <span class="field-type">array | null</span>   <span class="field-note">[ { type, payload, status } ]</span></span><br>
+      <span><span class="field-name">created_at</span>       <span class="field-type">timestamp</span></span>
+    </div>
+
+    <h3>Firestore Security Rules (outline)</h3>
+    <pre><span class="kw">rules_version</span> = <span class="str">'2'</span>;
+<span class="kw">service</span> cloud.firestore {
+  <span class="kw">match</span> /databases/{database}/documents {
+
+    <span class="cm">// All user data lives under /users/{userId}/</span>
+    <span class="cm">// Only the authenticated user can read/write their own documents</span>
+    <span class="kw">match</span> /users/{userId}/{document=**} {
+      <span class="kw">allow</span> read, write: <span class="kw">if</span> request.auth != null
+                         && request.auth.uid == userId;
+    }
+  }
+}</pre>
+  </div>
+
+  <!-- ══ 07 API / CLOUD FUNCTIONS ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <span class="section-title">API &amp; Cloud Functions</span>
+    </div>
+
+    <p>All server-side logic lives in Firebase Cloud Functions. The client never calls the Anthropic API directly — all AI calls are proxied through functions. The client calls Firestore directly for reads and simple CRUD writes; Cloud Functions handle AI interactions and any multi-step writes.</p>
+
+    <h3>Cloud Functions</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Function</th><th>Trigger</th><th>Responsibility</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>chatTurn</code></td>
+            <td>HTTPS callable</td>
+            <td>Receives user message + thread ID. Builds full context snapshot from Firestore. Calls Anthropic API. Parses response for proposed actions. Persists both messages. Returns assistant message + proposed actions.</td>
+          </tr>
+          <tr>
+            <td><code>executeAction</code></td>
+            <td>HTTPS callable</td>
+            <td>Receives a confirmed action payload (type + data). Validates and writes to Firestore. Returns updated document. Called after user confirms an action card.</td>
+          </tr>
+          <tr>
+            <td><code>inferMacros</code></td>
+            <td>HTTPS callable</td>
+            <td>Receives free-text meal description. Calls Anthropic API with macro inference prompt. Returns structured { cal, protein_g, carbs_g, fat_g, meal_type } for the confirmation card.</td>
+          </tr>
+          <tr>
+            <td><code>taskReviewTurn</code></td>
+            <td>HTTPS callable</td>
+            <td>Same as chatTurn but context is scoped to a single task. Used by the Task Drawer per-task chat.</td>
+          </tr>
+          <tr>
+            <td><code>seedRecurringToday</code></td>
+            <td>Cloud Scheduler (daily 00:01)</td>
+            <td>For each active user, checks which recurring tasks don't yet have a completion document for today. No-op if already exists. Ensures the Recurring screen is always current.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Action types</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Type</th><th>Execution</th><th>Collection written</th></tr></thead>
+        <tbody>
+          <tr><td><code>create_task</code></td><td>Insert task document</td><td>tasks</td></tr>
+          <tr><td><code>update_task</code></td><td>Update fields on task document</td><td>tasks</td></tr>
+          <tr><td><code>complete_task</code></td><td>Delete task document</td><td>tasks</td></tr>
+          <tr><td><code>log_meal</code></td><td>Insert meal_entry document</td><td>meal_entries</td></tr>
+          <tr><td><code>update_meal</code></td><td>Update meal_entry document</td><td>meal_entries</td></tr>
+          <tr><td><code>log_spend</code></td><td>Insert spend_entry document</td><td>spend_entries</td></tr>
+          <tr><td><code>update_spend</code></td><td>Update spend_entry document</td><td>spend_entries</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Anthropic prompt structure</h3>
+    <pre><span class="cm">// System prompt sent on every chatTurn call</span>
+
+You are a calm, warm assistant integrated into a personal life-management app.
+The user tracks tasks, meals, and spending through conversation with you.
+
+CAPABILITIES:
+- Add, update, or complete tasks
+- Log meals (you will estimate calories and macros from free text)
+- Record spending against categories
+- Answer questions about their data using the context below
+
+RULES:
+- Never execute data changes directly. Always propose an action and wait for user confirmation.
+- For meals, always return structured macro estimates even if uncertain. Say so if uncertain.
+- Identify intent from natural language — the user will not use commands.
+- If a message has no data action, respond conversationally.
+- Keep responses concise. This is a mobile app.
+
+RESPONSE FORMAT when proposing an action:
+Return a JSON block in your response with this structure:
+{
+  "proposed_actions": [
+    {
+      "type": "create_task | update_task | complete_task | log_meal | log_spend",
+      "payload": { ... },
+      "summary": "Human-readable description of the action"
+    }
+  ]
+}
+
+CURRENT DATA CONTEXT:
+{contextSnapshot}</pre>
+  </div>
+
+  <!-- ══ 08 AUTH ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <span class="section-title">Auth Flow</span>
+    </div>
+
+    <p><strong>Technology:</strong> Firebase Auth with Email Magic Link (<code>sendSignInLinkToEmail</code>)</p>
+
+    <h4>Login sequence</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Step</th><th>Action</th><th>SDK call</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>User enters email on login screen</td><td><code>sendSignInLinkToEmail(auth, email, actionCodeSettings)</code></td></tr>
+          <tr><td>2</td><td>Firebase sends a magic link to the email</td><td>—</td></tr>
+          <tr><td>3</td><td>User taps the link on their device</td><td>App handles deep link via Expo Linking</td></tr>
+          <tr><td>4</td><td>App completes sign-in with the link</td><td><code>signInWithEmailLink(auth, email, link)</code></td></tr>
+          <tr><td>5</td><td>Session is established; user redirected to Chat screen</td><td><code>onAuthStateChanged</code> listener fires</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note note--amber">
+      <span class="note-icon">📱</span>
+      <div><strong>Deep link handling on mobile:</strong> The magic link must open the app, not the browser. Configure <code>actionCodeSettings.url</code> to a Firebase Dynamic Link (or your app's custom scheme). On iOS, add the Universal Link domain to <code>apple-app-site-association</code>. On Android, add an intent filter for the scheme in <code>app.json</code>.</div>
+    </div>
+
+    <p>On first sign-in, a Cloud Function trigger (<code>onCreate</code> on Firebase Auth user) creates the user document in Firestore and seeds default spend categories (Groceries, Eating Out, Transport, Subscriptions).</p>
+  </div>
+
+  <!-- ══ 09 CLAUDE INTEGRATION ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <span class="section-title">Claude Integration Detail</span>
+    </div>
+
+    <h3>Macro inference flow</h3>
+    <p>When a user types a meal description in chat (or the quick-add on the Meals screen), the flow is:</p>
+    <ul class="doc-list">
+      <li>Client calls <code>inferMacros</code> Cloud Function with the description string</li>
+      <li>Function sends to Anthropic with a focused prompt: estimate cal, protein_g, carbs_g, fat_g, and infer meal_type. Return JSON only.</li>
+      <li>Function parses the response and returns the structured object</li>
+      <li>Client renders a confirmation card with the estimates pre-filled in editable fields</li>
+      <li>User adjusts if needed, then confirms → <code>executeAction</code> writes the meal_entry</li>
+    </ul>
+
+    <h4>Macro inference prompt</h4>
+    <pre>You are a nutritionist estimating macros for a meal described in natural language.
+The user is Indian — assume Indian cooking methods and portion sizes unless stated otherwise.
+
+Return ONLY valid JSON, no preamble, no explanation:
+{
+  "meal_type": "breakfast | lunch | dinner | snack",
+  "cal": number,
+  "protein_g": number,
+  "carbs_g": number,
+  "fat_g": number,
+  "confidence": "high | medium | low",
+  "note": "brief note if low confidence or ambiguous"
+}
+
+User input: "{description}"</pre>
+
+    <h3>Intent classification</h3>
+    <p>The main chat uses a single Anthropic call per turn — no separate classification step. Claude is instructed to identify intent and propose structured actions within the same response. The <code>chatTurn</code> Cloud Function parses the response for a JSON block containing <code>proposed_actions</code>; if none is found, the message is treated as a conversational reply only.</p>
+
+    <h3>Context window sizing</h3>
+    <p>The context snapshot is built server-side and estimated before sending. For a user with 30 tasks, 5 meal entries, and 8 spend entries, the snapshot is approximately 2,000–3,000 tokens. The chat history for the current thread is included up to the last 20 messages. Total context per turn stays well within the 200K token limit at typical usage.</p>
+  </div>
+
+  <!-- ══ 10 BUILD SEQUENCE ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">10</span>
+      <span class="section-title">Build Sequence</span>
+    </div>
+
+    <p>Five phases. Each phase produces a working slice of the app — not a set of disconnected parts. By the end of Phase 2 you can actually use the app daily.</p>
+
+    <div class="phase-grid">
+      <div class="phase-card">
+        <div class="phase-card-header">
+          <span class="phase-num">Phase 1</span>
+          <span class="phase-title">Foundation</span>
+        </div>
+        <div class="phase-weeks">Weeks 1–2</div>
+        <ul class="phase-items">
+          <li>Expo project scaffold (TypeScript)</li>
+          <li>Firebase project + Emulator Suite</li>
+          <li>Firebase Auth (magic link)</li>
+          <li>Firestore Security Rules</li>
+          <li>Design system tokens in React Native (StyleSheet)</li>
+          <li>Bottom tab bar + navigation shell</li>
+          <li>User document creation on first sign-in</li>
+        </ul>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-card-header">
+          <span class="phase-num">Phase 2</span>
+          <span class="phase-title">Tasks</span>
+        </div>
+        <div class="phase-weeks">Weeks 3–5</div>
+        <ul class="phase-items">
+          <li>Domain setup (create, colour, workspace)</li>
+          <li>Task CRUD (direct Firestore writes)</li>
+          <li>Tasks screen — Priority view</li>
+          <li>Tasks screen — Domain view toggle</li>
+          <li>Work / Personal grouping with ruled line</li>
+          <li>Drag-to-reorder (priority_rank midpoint)</li>
+          <li>Task Drawer — edit, subtasks</li>
+          <li>Recurring screen + completions</li>
+        </ul>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-card-header">
+          <span class="phase-num">Phase 3</span>
+          <span class="phase-title">Chat + AI</span>
+        </div>
+        <div class="phase-weeks">Weeks 6–8</div>
+        <ul class="phase-items">
+          <li>chatTurn Cloud Function</li>
+          <li>executeAction Cloud Function</li>
+          <li>Chat screen UI (bubbles, action cards)</li>
+          <li>Full context snapshot builder</li>
+          <li>Task actions via chat (add, update, complete)</li>
+          <li>Per-task drawer chat (taskReviewTurn)</li>
+        </ul>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-card-header">
+          <span class="phase-num">Phase 4</span>
+          <span class="phase-title">Meals</span>
+        </div>
+        <div class="phase-weeks">Weeks 9–10</div>
+        <ul class="phase-items">
+          <li>inferMacros Cloud Function</li>
+          <li>Meal confirmation card in chat</li>
+          <li>Meals screen (daily summary bars, entry list)</li>
+          <li>Quick-add on Meals screen</li>
+          <li>Date navigation (past days)</li>
+          <li>Macro goals in Profile settings</li>
+        </ul>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-card-header">
+          <span class="phase-num">Phase 5</span>
+          <span class="phase-title">Spends</span>
+        </div>
+        <div class="phase-weeks">Weeks 11–12</div>
+        <ul class="phase-items">
+          <li>Spend category setup (name, colour, budget, period)</li>
+          <li>Spend entry CRUD</li>
+          <li>Spend confirmation card in chat</li>
+          <li>Spends screen (budget cards, entry drill-down)</li>
+          <li>Weekly / monthly period toggle</li>
+          <li>Budget progress bars + overspend state</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Step-by-step within Phase 1</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Step</th><th>What to build</th><th>Unblocks</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>npx create-expo-app pulse --template typescript</code></td><td>Everything</td></tr>
+          <tr><td>2</td><td>Firebase project setup + <code>firebase.json</code> + Emulator config</td><td>All Firebase calls</td></tr>
+          <tr><td>3</td><td><code>lib/firebase.ts</code> — initialise app, auth, firestore</td><td>All Firebase SDK usage</td></tr>
+          <tr><td>4</td><td>Login screen — email input + magic link flow</td><td>All authenticated screens</td></tr>
+          <tr><td>5</td><td>Auth guard — redirect unauthenticated users to login</td><td>Protected routes</td></tr>
+          <tr><td>6</td><td>Firestore Security Rules — per-user isolation</td><td>Safe data access</td></tr>
+          <tr><td>7</td><td>Design tokens — colours, typography, spacing as StyleSheet constants</td><td>All screen UI</td></tr>
+          <tr><td>8</td><td>Bottom tab bar + empty screen shells</td><td>Navigation between screens</td></tr>
+          <tr><td>9</td><td>User document creation (Auth <code>onCreate</code> Cloud Function)</td><td>Profile, macro goals, seeded categories</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Out of Scope — V1</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Item</th><th>Target</th></tr></thead>
+        <tbody>
+          <tr><td>Weekly/monthly recurring tasks</td><td>V2</td></tr>
+          <tr><td>Push notifications / reminders</td><td>V2</td></tr>
+          <tr><td>Completed task history / archive</td><td>V2</td></tr>
+          <tr><td>Domain-level analytics &amp; charts</td><td>V2+</td></tr>
+          <tr><td>Meal history trends (weekly averages, charts)</td><td>V2+</td></tr>
+          <tr><td>Spend trends &amp; month-over-month comparisons</td><td>V2+</td></tr>
+          <tr><td>Multiple strategy chat threads (named sessions)</td><td>V2</td></tr>
+          <tr><td>Team / shared task lists</td><td>V3+</td></tr>
+          <tr><td>WMS integration / convergence</td><td>Future</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Environment Variables</h3>
+    <pre><span class="cm"># functions/.env — never commit</span>
+<span class="nm">ANTHROPIC_API_KEY</span>=sk-ant-...
+
+<span class="cm"># app/.env.local — never commit</span>
+<span class="nm">EXPO_PUBLIC_FIREBASE_API_KEY</span>=...
+<span class="nm">EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN</span>=...
+<span class="nm">EXPO_PUBLIC_FIREBASE_PROJECT_ID</span>=...
+<span class="nm">EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET</span>=...
+<span class="nm">EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID</span>=...
+<span class="nm">EXPO_PUBLIC_FIREBASE_APP_ID</span>=...
+
+<span class="cm"># EXPO_PUBLIC_ prefix exposes to the client bundle — safe for Firebase config
+# ANTHROPIC_API_KEY must NEVER have this prefix — server/functions only</span></pre>
+  </div>
+
+  <!-- ══ FOOTER ══ -->
+  <div class="footer">
+    <span>Pulse · Application Specification V1.0</span>
+    <span>June 2026 · Internal Draft</span>
+  </div>
+
+</div>
+</body>
+</html>

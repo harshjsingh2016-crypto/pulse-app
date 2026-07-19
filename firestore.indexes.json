@@ -1,0 +1,38 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "recurring_completions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "task_id", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "meal_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "date", "order": "DESCENDING" },
+        { "fieldPath": "logged_at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "spend_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "category_id", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "workspace", "order": "ASCENDING" },
+        { "fieldPath": "is_critical", "order": "DESCENDING" },
+        { "fieldPath": "priority_rank", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
