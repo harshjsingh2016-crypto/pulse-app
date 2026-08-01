@@ -7,6 +7,7 @@ import {
 import type { NativeSyntheticEvent, TextInputKeyPressEventData } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { executeActionFn, transcribeAudioFn } from '../lib/functions';
+import { todayStr } from '../lib/dates';
 import type { ProposedAction, ChatTurnOutput } from '../lib/functions';
 import { haptics } from '../lib/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -177,7 +178,7 @@ export default function ChatView({
         if (!audioBase64) return;
         // HIGH_QUALITY preset records .m4a (AAC) on both platforms.
         const mimeType = uri.toLowerCase().endsWith('.wav') ? 'audio/wav' : 'audio/m4a';
-        const { data } = await transcribeAudioFn({ audioBase64, mimeType, durationMs });
+        const { data } = await transcribeAudioFn({ audioBase64, mimeType, durationMs, clientDate: todayStr() });
         const text = (data?.text ?? '').trim();
         if (text) setInput(prev => (prev.trim() ? `${prev.trim()} ${text}` : text));
       } catch (e) {
@@ -208,7 +209,7 @@ export default function ChatView({
         setTranscribing(true);
         try {
           const audioBase64 = await blobToBase64(blob);
-          const { data } = await transcribeAudioFn({ audioBase64, mimeType, durationMs });
+          const { data } = await transcribeAudioFn({ audioBase64, mimeType, durationMs, clientDate: todayStr() });
           const text = (data?.text ?? '').trim();
           if (text) setInput(prev => (prev.trim() ? `${prev.trim()} ${text}` : text));
         } catch (e) {

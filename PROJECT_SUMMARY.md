@@ -376,7 +376,7 @@ Pulse has no passwords. You prove who you are with a one-time 6-digit code.
       default spend categories if this is your first ever sign-in.
 ```
 
-*(There's also a hidden reviewer path: a fixed email + code `424242` that skips the email step, so Google Play's app reviewer can sign in without receiving a real email — see Section 10.)*
+*(There's also a hidden reviewer path: a fixed reviewer email + a preset random OTP code that skips the email step, so Google Play's app reviewer can sign in without receiving a real email — see Section 10.)*
 
 ---
 
@@ -529,7 +529,7 @@ This means even though the app's Firebase config is public, a signed-in user can
 
 ### 10.4 The app-store reviewer bypass
 
-Because sign-in needs an emailed code, Google Play's automated reviewer couldn't get in. So `auth.ts` contains a **fixed test account** (`review@pulseaiapp.in` + code `424242`) that skips the email step and logs straight in. This is a deliberate, controlled exception with no real user data behind it — a standard pattern for store review.
+Because sign-in needs an emailed code, Google Play's automated reviewer couldn't get in. So `auth.ts` contains a **fixed test account** (a dedicated reviewer email + a preset random OTP code, both configured via the `REVIEW_EMAIL` / `REVIEW_OTP_CODE` environment variables) that skips the email step and logs straight in. This is a deliberate, controlled exception with no real user data behind it — a standard pattern for store review.
 
 ---
 

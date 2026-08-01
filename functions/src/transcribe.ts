@@ -2,6 +2,11 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import OpenAI, { toFile } from 'openai';
 import { getTranscribeModel } from './llm';
 import { recordTranscription } from './usage';
+import { enforceDailyLimit } from './limits';
+
+function isoDate(d: Date): string {
+  return d.toISOString().split('T')[0];
+}
 
 /**
  * Voice input: the client records a short audio clip and sends it base64-encoded;
@@ -14,10 +19,16 @@ export const transcribeAudio = onCall(async (request) => {
     throw new HttpsError('failed-precondition', 'Voice input is not configured.');
   }
 
-  const { audioBase64, mimeType, durationMs } = request.data as {
-    audioBase64?: string; mimeType?: string; durationMs?: number;
+  const { audioBase64, mimeType, durationMs, clientDate } = request.data as {
+    audioBase64?: string; mimeType?: string; durationMs?: number; clientDate?: string;
   };
   if (!audioBase64) throw new HttpsError('invalid-argument', 'No audio provided');
+
+  // Enforce the per-user daily VOICE cap (separate counter from chat, same limit value)
+  // before the transcription call — a blocked user costs nothing. Local day = user's
+  // midnight reset; falls back to server UTC.
+  const day = clientDate && /^\d{4}-\d{2}-\d{2}$/.test(clientDate) ? clientDate : isoDate(new Date());
+  await enforceDailyLimit(request.auth.uid, day, 'voice');
 
   const model = await getTranscribeModel(request.auth.uid);
   const buffer = Buffer.from(audioBase64, 'base64');

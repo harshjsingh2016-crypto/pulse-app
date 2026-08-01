@@ -3,11 +3,9 @@ import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { recordUsage } from './usage';
 import { callLLM, getChatProvider, MODELS } from './llm';
+import { enforceDailyLimit } from './limits';
 
 const db = getFirestore();
-
-/** Max main-chat messages a user may send per local calendar day. */
-const DAILY_MESSAGE_LIMIT = 100;
 
 // ── Shared prompt building blocks (used by every Pulse chat surface) ──────────
 
@@ -377,33 +375,6 @@ function parseProposedActions(content: string) {
   return null;
 }
 
-/**
- * Per-user daily cap on main-chat messages. Runs a transaction on
- * users/{uid}/limits/{day} so the check-and-increment is atomic — rapid concurrent
- * sends can't race past the cap. `day` is the client's LOCAL calendar day, so the
- * limit resets at the user's local midnight. Over-limit sends throw and don't increment.
- */
-async function enforceDailyMessageLimit(userId: string, day: string): Promise<void> {
-  const ref = db.doc(`users/${userId}/limits/${day}`);
-  await db.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    const count = (snap.data()?.['count'] as number | undefined) ?? 0;
-    if (count >= DAILY_MESSAGE_LIMIT) {
-      throw new HttpsError(
-        'resource-exhausted',
-        `You've reached today's limit of ${DAILY_MESSAGE_LIMIT} messages. It resets at midnight.`,
-      );
-    }
-    // expires_at lets a Firestore TTL policy on the `limits` collection auto-delete
-    // stale counters (a day's doc is never read again once that day passes).
-    tx.set(
-      ref,
-      { count: count + 1, date: day, expires_at: Timestamp.fromMillis(Date.now() + 3 * 86400000) },
-      { merge: true },
-    );
-  });
-}
-
 export const chatTurn = onCall(async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Not signed in');
 
@@ -413,7 +384,7 @@ export const chatTurn = onCall(async (request) => {
   // Enforce the daily cap before any Firestore reads or the LLM call — a blocked
   // user costs nothing. Local date (falls back to server UTC) matches the app's convention.
   const day = clientDate && /^\d{4}-\d{2}-\d{2}$/.test(clientDate) ? clientDate : isoDate(new Date());
-  await enforceDailyMessageLimit(userId, day);
+  await enforceDailyLimit(userId, day, 'chat');
 
   const provider = await getChatProvider(userId);
   const model = MODELS[provider].large;
