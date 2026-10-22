@@ -404,12 +404,13 @@ export const chatTurn = onCall(async (request) => {
     model,
     maxTokens: 1024,
     cacheKey: userId,
-    // SYSTEM_PROMPT (rules + schemas) is identical every turn; the context snapshot is
-    // stable between turns unless data changed. Both are cache breakpoints (Claude only;
-    // OpenAI caches automatically).
+    // SYSTEM_PROMPT (rules + schemas) is identical every turn, so it is the one cache
+    // breakpoint (Claude only; OpenAI caches automatically). The context snapshot is NOT
+    // cached: it changes almost every turn (date_today, totals, any applied action), so
+    // caching it meant paying a 1.25x cache-write on every turn that was rarely read back.
     system: [
       { text: SYSTEM_PROMPT, cache: true },
-      { text: `CURRENT DATA CONTEXT:\n${contextSnapshot}`, cache: true },
+      { text: `CURRENT DATA CONTEXT:\n${contextSnapshot}` },
     ],
     messages: history,
   });

@@ -9,10 +9,11 @@ The next step is the Google Play closed test: get twelve testers opted in, keep 
 fourteen continuous days, then request production access. Everything else waits behind it
 or runs alongside it without blocking.
 
-Alongside it, in order of value: stop caching the per-turn snapshot on Claude, the one
-change that materially cuts cost; reconsider the new-account transcription default, which
-is the costlier of the two OpenAI transcription models; and bring `PROJECT_CONTEXT.md` back
-in line with the code, since it still describes the old fixed cap of 100 messages per day.
+Alongside it, in order of value: deploy the Claude cache-write fix, which is in code but
+not yet in production, and confirm it in the usage ledger; reconsider the new-account
+transcription default, which is the costlier of the two OpenAI transcription models; and
+bring `PROJECT_CONTEXT.md` back in line with the code, since it still describes the old
+fixed cap of 100 messages per day.
 
 Cleanup that can go whenever a session is in the area: the `seedRecurringToday` scheduled
 function queries a collection that does not exist and only logs, and the magic-link files

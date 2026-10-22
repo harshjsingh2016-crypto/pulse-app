@@ -37,7 +37,6 @@ Aesthetic/positioning: calm, "warm notebook" design; no social feed; single-user
 ### Planned / pending / in-flight
 - **Google Play production launch**: personal dev account requires a **closed test with ≥12 testers opted-in for 14 continuous days** before production access — this is the current critical path, not code.
 - **iOS launch** (App Store) — later, after Android is stable.
-- **Cache-write cost bug fix** (see §8, §15): Claude caches a volatile per-turn snapshot → ~89% of Claude spend is wasted cache-writes; fix = stop caching the snapshot.
 - **Reconsider transcription default** (`gpt-4o-transcribe` is ~2.5× costlier than `gpt-4o-mini-transcribe`).
 - Possible cleanup of vestigial `seedRecurringToday` scheduled function and legacy magic-link files.
 - Optional: extend the modal keyboard fix to the remaining drawers if the symptom appears.
@@ -142,7 +141,7 @@ All are `onCall` (callable; require `request.auth`) except the scheduled one. Ex
 - **`MODELS`**: `claude: { large: 'claude-sonnet-4-6', small: 'claude-haiku-4-5' }`, `openai: { large: 'gpt-5.1', small: 'gpt-5-mini' }`. Large = chat surfaces; small = inferMacros.
 - **`getChatProvider(uid)`** → reads `chat_provider` off user doc; **read-time default `'claude'`**.
 - **`getTranscribeModel(uid)`** → `transcribe_model`; **read-time default `'gpt-4o-mini-transcribe'`**. Valid: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`.
-- Prompt caching: Claude uses 2 `cache_control` breakpoints (system prompt + context snapshot); OpenAI passes `prompt_cache_key=uid`. GPT-5 params: `max_completion_tokens = maxTokens+2048`, `reasoning_effort: 'low'`.
+- Prompt caching: Claude uses 1 `cache_control` breakpoint (the static system prompt only; the per-turn context snapshot is deliberately uncached — see §8); OpenAI passes `prompt_cache_key=uid`. GPT-5 params: `max_completion_tokens = maxTokens+2048`, `reasoning_effort: 'low'`.
 
 ### usage.ts (cost ledger)
 - **`recordUsage(uid, model, usage)`** — writes token counts + `cost_usd` to `users/{uid}/usage/{YYYY-MM-DD}` (UTC), daily totals + per-model under `models.{modelId}`. Never throws.
@@ -231,7 +230,7 @@ Payload conventions: tasks/recurring may pass `domain_name` (resolved/created se
 - **Grounding**: every `chatTurn` injects `buildContextSnapshot` (the user's live data, trimmed) as a cached system block so answers/proposals reflect reality.
 - **Provider parity**: `callLLM` returns identical shape for Claude/OpenAI; switching = one user-doc field, no redeploy.
 - **Cost controls**: prompt caching, 100 msg/user/day cap, usage ledger, small-model for cheap tasks (macros).
-- **KNOWN COST BUG**: Claude is configured with 2 cache breakpoints, the second being the **per-turn context snapshot** which changes almost every turn → constant cache-*writes* (Anthropic bills 1.25× for writes; OpenAI free). Empirically ~89% of Claude spend = cache-writes, making Claude ~6× costlier per message than gpt-5.1 in real usage. Fix: cache only the static system prompt, not the volatile snapshot. (OpenAI is structurally cheaper here regardless.)
+- **Cache-write fix (2026-10-22)**: Claude previously had 2 cache breakpoints, the second on the **per-turn context snapshot**, which changes almost every turn → a cache-*write* (billed 1.25×) on nearly every turn that was rarely read back; empirically ~89% of Claude spend. Now only the static system prompt carries `cache_control`; the snapshot is sent as a plain uncached system block. Deployed status: code fixed, functions NOT yet redeployed.
 - **Client chat**: `app/lib/chatIntro.ts` holds authored tutorial text + quick-action bubbles (Tasks/Recur/Health/Spends status prompts + Clear/Re-view). Quick actions send crafted natural-language prompts that the grounded LLM answers as status reports.
 
 ---
@@ -292,13 +291,12 @@ Passwordless email OTP: `login.tsx` → `requestEmailOtpFn(email)` → Resend em
 
 ## 15. KNOWN ISSUES / TECH DEBT
 
-1. **Claude cache-write waste** (§8) — biggest cost lever; fix in `functions/src/chat.ts` (don't cache the per-turn snapshot).
-2. **`seedRecurringToday`** — vestigial (wrong collection, logs only).
-3. **Legacy magic-link files** — `(auth)/callback.tsx`, `lib/emailStore.ts` unused.
-4. **Transcription default** — `gpt-4o-transcribe` ~2.5× costlier than mini; reconsider.
-5. **Drawer keyboard fix** — only TaskDrawer + DomainDrawer got the keyboard-aware maxHeight fix; the other 5 drawers use a static `maxHeight` %; apply the same fix if the "field pushed off-screen" symptom appears.
-6. **PRICING table** in `usage.ts` is hand-maintained — verify against real provider invoices.
-7. **No meaningful git history** — single squashed initial commit.
+1. **`seedRecurringToday`** — vestigial (wrong collection, logs only).
+2. **Legacy magic-link files** — `(auth)/callback.tsx`, `lib/emailStore.ts` unused.
+3. **Transcription default** — `gpt-4o-transcribe` ~2.5× costlier than mini; reconsider.
+4. **Drawer keyboard fix** — only TaskDrawer + DomainDrawer got the keyboard-aware maxHeight fix; the other 5 drawers use a static `maxHeight` %; apply the same fix if the "field pushed off-screen" symptom appears.
+5. **PRICING table** in `usage.ts` is hand-maintained — verify against real provider invoices.
+6. **No meaningful git history** — single squashed initial commit.
 
 ---
 

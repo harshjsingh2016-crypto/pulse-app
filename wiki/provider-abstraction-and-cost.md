@@ -18,10 +18,12 @@ admin raises it per user by editing `daily_message_limit` on the user document. 
 ledger that records tokens and a computed cost per day per model. And the small model for
 anything that does not need the large one.
 
-One known cost bug remains. Claude is given two cache breakpoints, and the second is the
-per-turn context snapshot, which changes nearly every turn. Each turn therefore pays for a
-cache write at a premium rate, and the snapshot is rarely read back. The fix is to cache
-only the static system prompt. It is the biggest single cost lever in the backlog.
+One cost bug ran for months and was fixed in code on 22 October 2026. Claude was given two
+cache breakpoints, and the second was the per-turn context snapshot, which changes nearly
+every turn. Each turn therefore paid for a cache write at a premium rate, and the snapshot
+was rarely read back. Now only the static system prompt carries the breakpoint; the
+snapshot goes as a plain uncached block. The fix is not yet deployed to production, and
+the proof will be the cache-creation column in the usage ledger falling after it is.
 
 Dates everywhere are the user's local calendar day, passed from the client, never UTC —
 evening entries in India were landing on the next day before that was fixed. The usage
