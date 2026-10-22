@@ -22,8 +22,19 @@ One cost bug ran for months and was fixed in code on 22 October 2026. Claude was
 cache breakpoints, and the second was the per-turn context snapshot, which changes nearly
 every turn. Each turn therefore paid for a cache write at a premium rate, and the snapshot
 was rarely read back. Now only the static system prompt carries the breakpoint; the
-snapshot goes as a plain uncached block. It was deployed to production the same day; the
-proof is the cache-creation column in the usage ledger falling on the turns that follow.
+snapshot goes as a plain uncached block. It was deployed the same day and confirmed in the
+function logs: the first Claude turn wrote only the system prompt to cache, and the next
+turn read it back and wrote nothing.
+
+The saving is smaller than "most of the spend was cache writes" suggests. Removing the
+breakpoint does not remove those tokens; it bills them as ordinary input instead of input
+at a 1.25 multiple, so that portion costs about a fifth less. There is also a counter-case:
+when two turns land within the five-minute cache window and no data has changed, the old
+setup read the snapshot back at a tenth of the price, and the fix pays full price instead.
+The same-day OpenAI turns show the snapshot can indeed stay identical between turns. The
+fix is right for sporadic, log-something-and-leave use, which the earlier write-heavy
+ledger points to, but the real lever is the size of the snapshot itself, which every turn
+now sends at full price.
 
 Dates everywhere are the user's local calendar day, passed from the client, never UTC —
 evening entries in India were landing on the next day before that was fixed. The usage

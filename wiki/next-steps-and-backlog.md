@@ -9,8 +9,9 @@ The next step is the Google Play closed test: get twelve testers opted in, keep 
 fourteen continuous days, then request production access. Everything else waits behind it
 or runs alongside it without blocking.
 
-Alongside it, in order of value: confirm the deployed Claude cache-write fix in the usage
-ledger after a few Claude turns; reconsider the new-account
+Alongside it, in order of value: decide whether to shrink the context snapshot, which is
+now the bulk of every Claude turn's cost after the cache-write fix (confirmed 22 October);
+reconsider the new-account
 transcription default, which is the costlier of the two OpenAI transcription models; and
 bring `PROJECT_CONTEXT.md` back in line with the code, since it still describes the old
 fixed cap of 100 messages per day.
