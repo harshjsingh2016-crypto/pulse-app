@@ -230,7 +230,7 @@ Payload conventions: tasks/recurring may pass `domain_name` (resolved/created se
 - **Grounding**: every `chatTurn` injects `buildContextSnapshot` (the user's live data, trimmed) as a cached system block so answers/proposals reflect reality.
 - **Provider parity**: `callLLM` returns identical shape for Claude/OpenAI; switching = one user-doc field, no redeploy.
 - **Cost controls**: prompt caching, 100 msg/user/day cap, usage ledger, small-model for cheap tasks (macros).
-- **Cache-write fix (2026-10-22)**: Claude previously had 2 cache breakpoints, the second on the **per-turn context snapshot**, which changes almost every turn → a cache-*write* (billed 1.25×) on nearly every turn that was rarely read back; empirically ~89% of Claude spend. Now only the static system prompt carries `cache_control`; the snapshot is sent as a plain uncached system block. Deployed status: code fixed, functions NOT yet redeployed.
+- **Cache-write fix (2026-10-22)**: Claude previously had 2 cache breakpoints, the second on the **per-turn context snapshot**, which changes almost every turn → a cache-*write* (billed 1.25×) on nearly every turn that was rarely read back; empirically ~89% of Claude spend. Now only the static system prompt carries `cache_control`; the snapshot is sent as a plain uncached system block. Deployed to production 2026-10-22.
 - **Client chat**: `app/lib/chatIntro.ts` holds authored tutorial text + quick-action bubbles (Tasks/Recur/Health/Spends status prompts + Clear/Re-view). Quick actions send crafted natural-language prompts that the grounded LLM answers as status reports.
 
 ---

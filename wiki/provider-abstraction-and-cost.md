@@ -22,8 +22,8 @@ One cost bug ran for months and was fixed in code on 22 October 2026. Claude was
 cache breakpoints, and the second was the per-turn context snapshot, which changes nearly
 every turn. Each turn therefore paid for a cache write at a premium rate, and the snapshot
 was rarely read back. Now only the static system prompt carries the breakpoint; the
-snapshot goes as a plain uncached block. The fix is not yet deployed to production, and
-the proof will be the cache-creation column in the usage ledger falling after it is.
+snapshot goes as a plain uncached block. It was deployed to production the same day; the
+proof is the cache-creation column in the usage ledger falling on the turns that follow.
 
 Dates everywhere are the user's local calendar day, passed from the client, never UTC —
 evening entries in India were landing on the next day before that was fixed. The usage
