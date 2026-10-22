@@ -1,7 +1,30 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { requireId } from './limits';
 
 const db = getFirestore();
+
+/** Every payload key that is used to build a Firestore path. */
+const ID_KEYS = ['id', 'task_id', 'domain_id', 'category_id'] as const;
+
+/**
+ * The payload comes from the client (the model proposes, but the client sends), so any
+ * id in it must look like one of ours before it is interpolated into a document path.
+ * Paths always start at users/{uid}, so this cannot escape the user's own data; it
+ * rejects slashes and junk so a malformed id fails cleanly instead of creating a stray
+ * nested document.
+ */
+function assertValidShape(action: unknown): asserts action is { type: ActionType; payload: Record<string, unknown> } {
+  const a = action as { type?: unknown; payload?: unknown } | null;
+  if (!a || typeof a.type !== 'string' || !a.payload || typeof a.payload !== 'object' || Array.isArray(a.payload)) {
+    throw new HttpsError('invalid-argument', 'Malformed action.');
+  }
+  const payload = a.payload as Record<string, unknown>;
+  for (const key of ID_KEYS) {
+    const v = payload[key];
+    if (v !== undefined && v !== null && v !== '') requireId(v, key);
+  }
+}
 
 type ActionType =
   | 'create_task'
@@ -125,7 +148,8 @@ async function applyDomainName(userPath: string, payload: Record<string, unknown
 export const executeAction = onCall(async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Not signed in');
 
-  const { action } = request.data as { action: { type: ActionType; payload: Record<string, unknown> } };
+  const { action } = request.data as { action: unknown };
+  assertValidShape(action);
   const userId = request.auth.uid;
   const userPath = `users/${userId}`;
   const todayStr = new Date().toISOString().split('T')[0];

@@ -6,8 +6,16 @@ updated: 2026-10-22
 # Next steps and backlog
 
 The next step is the Google Play closed test: get twelve testers opted in, keep them in for
-fourteen continuous days, then request production access. Everything else waits behind it
-or runs alongside it without blocking.
+fourteen continuous days, then request production access. The pre-launch hardening is
+done and deployed; what the launch still needs is a new Android build, since the
+orientation lock was removed for large screens, and a check of the layouts in landscape
+and on a tablet before that build goes to the closed track. Everything else waits behind
+it or runs alongside it without blocking.
+
+From the audit, two small client pieces remain: the microphone should stop itself at
+about two minutes so a user never meets the server's 3 MB rejection, and Options should
+show today's usage count now that the counters are readable. Two larger ones are
+suggestions on the board: App Check, and restricting the public Firebase API key.
 
 Alongside it, in order of value: decide whether to shrink the context snapshot, which is
 now the bulk of every Claude turn's cost after the cache-write fix (confirmed 22 October);

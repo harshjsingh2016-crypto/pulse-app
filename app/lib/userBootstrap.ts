@@ -45,10 +45,9 @@ export async function ensureUserBootstrap(user: User): Promise<void> {
         // set, or the server-side read-time fallback (Claude / gpt-4o-mini-transcribe).
         chat_provider: 'openai',
         transcribe_model: 'gpt-4o-transcribe',
-        // Per-user daily cap (applies to chat AND voice, counted separately). Written so
-        // it's visible/editable in the Firestore console; change per user to grant more.
-        // Absent on older accounts → server default (10) still applies.
-        daily_message_limit: 10,
+        // The per-user daily cap (`daily_message_limit`) is deliberately NOT written here:
+        // Firestore rules block the client from setting it, so only an admin can raise it
+        // from the console. Absent → server default (functions/src/limits.ts) applies.
         spend_categories_deduped: true,
         created_at: serverTimestamp(),
       });

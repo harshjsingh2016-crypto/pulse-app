@@ -13,9 +13,11 @@ const MAX_ATTEMPTS = 5;                   // wrong-code attempts before invalida
 
 // Play Store / App Store review account. The reviewer can't receive a real OTP email,
 // so this fixed email accepts a fixed code (no Resend, no rate limit). Enter these under
-// Play Console → App access. Override via functions/.env if you want different values.
-const REVIEW_EMAIL = (process.env['REVIEW_EMAIL'] ?? 'review@pulseaiapp.in').toLowerCase();
-const REVIEW_CODE = process.env['REVIEW_OTP_CODE'] ?? '424242';
+// Play Console → App access. Both come from functions/.env; with either unset the bypass
+// is OFF — this repo is public, so there is no hardcoded fallback.
+const REVIEW_EMAIL = process.env['REVIEW_EMAIL']?.trim().toLowerCase() || null;
+const REVIEW_CODE = process.env['REVIEW_OTP_CODE']?.trim() || null;
+const reviewBypassEnabled = REVIEW_EMAIL !== null && REVIEW_CODE !== null;
 
 /** email_otps doc id — a hash of the email so we never store it as a raw doc key. */
 const emailKey = (email: string) => createHash('sha256').update(email).digest('hex');
@@ -36,7 +38,7 @@ export const requestEmailOtp = onCall(async (request) => {
 
   // Review account: pretend success without sending or rate-limiting. The fixed code is
   // validated in verifyEmailOtp.
-  if (email === REVIEW_EMAIL) return { success: true };
+  if (reviewBypassEnabled && email === REVIEW_EMAIL) return { success: true };
 
   const ref = db.doc(`email_otps/${emailKey(email)}`);
   const snap = await ref.get();
@@ -100,7 +102,7 @@ export const verifyEmailOtp = onCall(async (request) => {
   if (!/^\d{6}$/.test(code)) throw new HttpsError('invalid-argument', 'Enter the 6-digit code.');
 
   // Review account bypass — fixed email + code, no OTP doc required.
-  if (email === REVIEW_EMAIL && code === REVIEW_CODE) {
+  if (reviewBypassEnabled && email === REVIEW_EMAIL && code === REVIEW_CODE) {
     const auth = getAuth();
     let uid: string;
     try {

@@ -11,8 +11,11 @@ pattern; voice input, habit reminders, haptics, offline persistence and crash re
 in. Auth is passwordless email OTP with account deletion and a public privacy page. The web
 build is live on Firebase Hosting and the Cloud Functions are deployed on the Blaze plan.
 
-The last code change in the repo is from 1 August 2026: per-user daily limits for chat and
-voice, replacing a fixed cap of 100.
+The last code change before the launch push was from 1 August 2026: per-user daily limits
+for chat and voice, replacing a fixed cap of 100. On 22 October 2026 a pre-launch audit
+closed the gaps in those limits and in the Firestore rules (see
+[Security and cost posture](security-and-cost-posture.md)), and the web app was redeployed
+after three months on an old bundle.
 
 The current gate is not code. A personal Google Play developer account must run a closed
 test with at least twelve opted-in testers for fourteen continuous days before production

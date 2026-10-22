@@ -27,7 +27,7 @@ export type ProposedAction = {
 export type ExecuteActionInput = { action: ProposedAction };
 export type ExecuteActionOutput = { success: boolean; documentId: string };
 
-export type InferMacrosInput = { description: string };
+export type InferMacrosInput = { description: string; clientDate?: string };
 export type InferMacrosOutput = {
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   cal: number;
@@ -38,7 +38,7 @@ export type InferMacrosOutput = {
   note?: string;
 };
 
-export type DomainStrategyTurnInput = { message: string; threadId: string; domainId: string };
+export type DomainStrategyTurnInput = { message: string; threadId: string; domainId: string; clientDate?: string };
 
 export const chatTurnFn = httpsCallable<ChatTurnInput, ChatTurnOutput>(functions, 'chatTurn');
 export const executeActionFn = httpsCallable<ExecuteActionInput, ExecuteActionOutput>(functions, 'executeAction');

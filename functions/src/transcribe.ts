@@ -2,11 +2,16 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import OpenAI, { toFile } from 'openai';
 import { getTranscribeModel } from './llm';
 import { recordTranscription } from './usage';
-import { enforceDailyLimit } from './limits';
+import { enforceDailyLimit, resolveLimitDay } from './limits';
 
-function isoDate(d: Date): string {
-  return d.toISOString().split('T')[0];
-}
+/**
+ * Hard cap on one voice clip. Transcription is billed per minute, and the daily cap only
+ * limits the NUMBER of clips, so the SIZE of a clip must be bounded too. 3 MB is ~3 min
+ * of m4a at 128 kbps or ~12 min of webm/opus — well past any chat message.
+ */
+const MAX_AUDIO_BYTES = 3 * 1024 * 1024;
+/** Longest duration the cost ledger will believe from the client (it is self-reported). */
+const MAX_LEDGER_SECONDS = 10 * 60;
 
 /**
  * Voice input: the client records a short audio clip and sends it base64-encoded;
@@ -20,21 +25,27 @@ export const transcribeAudio = onCall(async (request) => {
   }
 
   const { audioBase64, mimeType, durationMs, clientDate } = request.data as {
-    audioBase64?: string; mimeType?: string; durationMs?: number; clientDate?: string;
+    audioBase64?: unknown; mimeType?: unknown; durationMs?: unknown; clientDate?: unknown;
   };
-  if (!audioBase64) throw new HttpsError('invalid-argument', 'No audio provided');
+  if (typeof audioBase64 !== 'string' || audioBase64.length === 0) {
+    throw new HttpsError('invalid-argument', 'No audio provided');
+  }
+  // base64 is 4 chars per 3 bytes — check before decoding so an oversized payload never
+  // allocates a buffer or reaches the transcription call.
+  if (audioBase64.length * 0.75 > MAX_AUDIO_BYTES) {
+    throw new HttpsError('invalid-argument', 'That recording is too long. Keep voice notes under a couple of minutes.');
+  }
 
   // Enforce the per-user daily VOICE cap (separate counter from chat, same limit value)
   // before the transcription call — a blocked user costs nothing. Local day = user's
-  // midnight reset; falls back to server UTC.
-  const day = clientDate && /^\d{4}-\d{2}-\d{2}$/.test(clientDate) ? clientDate : isoDate(new Date());
-  await enforceDailyLimit(request.auth.uid, day, 'voice');
+  // midnight reset, bounded to ±1 day of server UTC.
+  await enforceDailyLimit(request.auth.uid, resolveLimitDay(clientDate), 'voice');
 
   const model = await getTranscribeModel(request.auth.uid);
   const buffer = Buffer.from(audioBase64, 'base64');
 
   // Pick a filename extension OpenAI recognizes from the recorded MIME type.
-  const type = mimeType || 'audio/webm';
+  const type = typeof mimeType === 'string' && mimeType.length <= 64 ? mimeType : 'audio/webm';
   const ext = type.includes('mp4') || type.includes('m4a') ? 'mp4'
     : type.includes('wav') ? 'wav'
       : type.includes('mpeg') || type.includes('mp3') ? 'mp3'
@@ -44,7 +55,10 @@ export const transcribeAudio = onCall(async (request) => {
   const client = new OpenAI({ apiKey: process.env['OPENAI_API_KEY'] });
   const result = await client.audio.transcriptions.create({ file, model });
 
-  await recordTranscription(request.auth.uid, model, (durationMs ?? 0) / 1000);
+  const seconds = typeof durationMs === 'number' && durationMs > 0
+    ? Math.min(durationMs / 1000, MAX_LEDGER_SECONDS)
+    : 0;
+  await recordTranscription(request.auth.uid, model, seconds);
 
   return { text: (result as { text?: string }).text ?? '' };
 });

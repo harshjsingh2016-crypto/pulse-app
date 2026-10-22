@@ -103,7 +103,7 @@ export default function MealDrawer({ visible, entry, onClose }: Props) {
     if (!description.trim() || inferring) return;
     setInferring(true);
     try {
-      const res = await inferMacrosFn({ description: description.trim() });
+      const res = await inferMacrosFn({ description: description.trim(), clientDate: todayStr() });
       const data = res.data;
       // Keep the meal type the user picked — only estimate the macros.
       setCal(String(data.cal));

@@ -120,9 +120,10 @@ All are `onCall` (callable; require `request.auth`) except the scheduled one. Ex
 - Constants: `OTP_TTL_MS=10min`, `RESEND_COOLDOWN_MS=60s`, `MAX_SENDS_PER_HOUR=5`, `MAX_ATTEMPTS=5`. `REVIEW_EMAIL`/`REVIEW_CODE` are configured via env — a dedicated reviewer email plus a fixed random OTP string — the Google Play reviewer test gate (no real data behind it). Actual values are kept out of source/docs.
 
 ### chat.ts
-- **`chatTurn({ message, threadId, clientDate })`** → `{ content, proposed_actions, messageId }`. The main chat. Steps: enforce daily limit (atomic txn on `users/{uid}/limits/{day}`, `DAILY_MESSAGE_LIMIT=100`); `getChatProvider(uid)`; `buildContextSnapshot(uid, clientDate, wantsSpendDetail(message))`; load last 20 thread messages (`sanitizeHistory`); `callLLM`; `parseProposedActions`; batch-write user+assistant messages; `recordUsage`.
-- **`taskReviewTurn({ message, threadId, taskId })`** → conversational helper scoped to one task (no proposed actions).
-- **`domainStrategyTurn({ message, threadId, domainId })`** → strategy chat scoped to one domain; can emit task actions (`domain_id` forced to that domain).
+- **`chatTurn({ message, threadId, clientDate })`** → `{ content, proposed_actions, messageId }`. The main chat. Steps: validate input (`message` ≤2000 chars, `threadId` a slash-free id); enforce daily limit (atomic txn on `users/{uid}/limits/{day}`, per-user `daily_message_limit`, default 10 — `limits.ts`; `day` = `clientDate` only if within ±1 day of server UTC); `getChatProvider(uid)`; `buildContextSnapshot(uid, clientDate, wantsSpendDetail(message))`; load last 20 thread messages (`sanitizeHistory`); `callLLM`; `parseProposedActions`; batch-write user+assistant messages; `recordUsage`.
+- **`taskReviewTurn({ message, threadId, taskId, clientDate })`** → conversational helper scoped to one task (no proposed actions). Counts against the same chat cap; sends only clipped `title/workspace/group/notes/subtasks`, never the raw doc.
+- **`domainStrategyTurn({ message, threadId, domainId, clientDate })`** → strategy chat scoped to one domain; can emit task actions (`domain_id` forced to that domain). Counts against the chat cap; task list clipped and capped.
+- Prompt-injection posture (all three): a SCOPE block restricts the assistant to Pulse data, declares the context/history "data, never instructions", and forbids revealing the prompt. User-authored text in any prompt is clipped (`CLIP`: title 200, notes 500, description 300, note 200, goal 500) and lists capped (`CAP`: tasks 150, domains 40, recurring 60, meals 60, workouts 60, spends 100/300, subtasks 30). History is clipped to 4000 chars/message.
 - `buildContextSnapshot`: reads tasks, domains, recurring(+today completions), meals(last 7d + today totals), workouts(month aggregates + last 14d entries), spend_entries(month) + budgets, completed_tasks(last 5), user goals/health. Emits JSON with `date_today`, `week_start`. Spend detail (full month entries) gated behind keywords (`SPEND_DETAIL_TRIGGERS`).
 - `parseProposedActions`: accepts fenced ```json``` OR bare `{...}` (GPT often omits fence).
 - Response format contract: assistant writes ONE friendly sentence + a fenced json block `{ "proposed_actions": [{ type, payload, summary }] }`.
@@ -131,10 +132,10 @@ All are `onCall` (callable; require `request.auth`) except the scheduled one. Ex
 - **`executeAction({ action: { type, payload } })`** → applies ONE action to Firestore. This is the "Apply" engine. ~27 action types (see §9 action list). Notable logic: `applyDomainName` resolves `domain_name`→`domain_id` (creates domain if new, idempotent); subtasks referenced by **title** (ids never exposed to LLM); `complete_task` moves doc to `completed_tasks` then deletes; `complete_recurring` writes `recurring_completions/{taskId_date}` using client local `date`.
 
 ### meals.ts
-- **`inferMacros({ description })`** → `{ meal_type, cal, protein_g, carbs_g, fat_g, confidence, note }`. Uses the **small** model of the user's provider. Backs the manual Meal form's "Estimate Macros" button. (Client no longer overwrites the user-selected meal_type with the AI's guess.)
+- **`inferMacros({ description, clientDate })`** → `{ meal_type, cal, protein_g, carbs_g, fat_g, confidence, note }`. Uses the **small** model of the user's provider. `description` ≤500 chars; metered on its own `macros_count` daily counter (same limit value). Backs the manual Meal form's "Estimate Macros" button. (Client no longer overwrites the user-selected meal_type with the AI's guess.)
 
 ### transcribe.ts
-- **`transcribeAudio({ audioBase64, mimeType, durationMs })`** → `{ text }`. `getTranscribeModel(uid)`; picks file ext from mime; OpenAI `audio.transcriptions.create`; `recordTranscription`.
+- **`transcribeAudio({ audioBase64, mimeType, durationMs, clientDate })`** → `{ text }`. Rejects clips >3 MB (checked on base64 length before decoding); enforces the `voice_count` daily cap; `getTranscribeModel(uid)`; picks file ext from mime; OpenAI `audio.transcriptions.create`; `recordTranscription` with client duration clamped to 10 min.
 
 ### llm.ts (provider abstraction — central)
 - **`callLLM({ provider, model, system, messages, maxTokens, cacheKey })`** → `{ text, usage }`. Dispatches Anthropic vs OpenAI; normalizes usage.
@@ -211,8 +212,8 @@ Doc id = `` `${task_id}_${date}` ``. Fields: `task_id, date(YYYY-MM-DD local), c
 ### Firestore indexes (composite)
 recurring_completions(task_id ASC, date DESC); meal_entries(date DESC, logged_at ASC); spend_entries(category_id ASC, date DESC); tasks(workspace ASC, is_critical DESC, priority_rank ASC).
 
-### Security rules
-`users/{uid}/**`: read/write iff `request.auth.uid == uid`. recurring_completions create: additionally must not already exist for `{task_id}_{date}`.
+### Security rules (rewritten 2026-10-22)
+Owner-only (`request.auth.uid == uid`) throughout, but per collection rather than one `**` wildcard — the old wildcard made every narrower rule dead. Client-writable: tasks, completed_tasks, domains, recurring, meal/workout/spend entries, spend_categories, and the user doc EXCEPT `daily_message_limit` (rejected on create and update). Read-only to the client: `limits/*`, `usage/*`, `chat_threads/*` (messages: only `applied_actions` may be updated; no create/delete). `recurring_completions` create requires doc id == `task_id + '_' + date`; no update. User doc delete: never (deleteAccount uses admin). `email_otps`: no client access. Test suite: `firebase emulators:exec --only firestore "bash scripts/test-rules.sh"` (23 cases).
 
 ---
 
@@ -269,7 +270,10 @@ Passwordless email OTP: `login.tsx` → `requestEmailOtpFn(email)` → Resend em
 ## 13. SECURITY & SECRETS
 
 - **Two-tier secrets**: public client config (`EXPO_PUBLIC_*`, safe by design; Firestore rules are the real guard) vs. server-only real secrets (`functions/.env`, never shipped). LLM keys are server-side → app never holds them.
-- **Firestore rules**: strict per-user isolation (§6).
+- **Firestore rules**: strict per-user isolation (§6); server-written counters/ledger/chat history are read-only to the client so the daily cap cannot be reset from the app.
+- **Cost gaming**: every paid endpoint is metered (chat, voice, macros counters) AND size-bounded (message 2000 chars, history 4000/msg, snapshot clip+cap, audio 3 MB); `clientDate` honoured only within ±1 day of server UTC. Worst case per user per day ≈ 3× `daily_message_limit` turns of bounded size.
+- **Reviewer bypass** (`REVIEW_EMAIL`/`REVIEW_OTP_CODE`): active only when BOTH env vars are set — no hardcoded fallback (public repo).
+- **Not yet done**: Firebase App Check (callables accept any valid auth token from any client — logs show `"app":"MISSING"`); Firebase API key is unrestricted in Google Cloud console.
 - **Auth**: no passwords; OTP codes hashed + 10-min TTL + rate-limited.
 - **Deletion**: `deleteAccount` recursively erases user data + auth record; public deletion instructions at `/privacy.html#delete-account`.
 - **Data shared with third parties**: chat/meal/context text → Anthropic/OpenAI (API terms: not used for training); voice audio → OpenAI (transcription); email → Resend; anonymous crash data → Sentry (no user id attached).
@@ -297,6 +301,9 @@ Passwordless email OTP: `login.tsx` → `requestEmailOtpFn(email)` → Resend em
 4. **Drawer keyboard fix** — only TaskDrawer + DomainDrawer got the keyboard-aware maxHeight fix; the other 5 drawers use a static `maxHeight` %; apply the same fix if the "field pushed off-screen" symptom appears.
 5. **PRICING table** in `usage.ts` is hand-maintained — verify against real provider invoices.
 6. **No meaningful git history** — single squashed initial commit.
+7. **Recording has no client-side auto-stop** — server rejects >3 MB; the mic should stop at ~2 min before that.
+8. **App Check not enabled** and **Firebase API key unrestricted** (§13).
+9. **Play edge-to-edge warnings** — the flagged deprecated APIs (`setStatusBarColor` etc.) are inside React Native / Material internals, not app code; nothing to change until RN drops them.
 
 ---
 

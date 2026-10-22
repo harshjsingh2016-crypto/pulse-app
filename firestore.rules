@@ -1,18 +1,72 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // All user data lives under /users/{userId}/
-    // Only the authenticated user can read/write their own documents
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId;
+    // All user data lives under /users/{userId}/ — the isolation boundary. Only that
+    // signed-in user can touch it. Cloud Functions use the admin SDK and bypass rules.
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
 
-    // Enforce one recurring completion per task per date
-    match /users/{userId}/recurring_completions/{completionId} {
-      allow create: if request.auth != null
-                    && request.auth.uid == userId
-                    && !exists(/databases/$(database)/documents/users/$(userId)/recurring_completions/$(request.resource.data.task_id + '_' + request.resource.data.date));
+    // Server-owned fields on the user doc: the client must never set or change them.
+    // daily_message_limit is the per-user cost cap — only an admin raises it.
+    function touchesServerFields(keys) {
+      return keys.hasAny(['daily_message_limit']);
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+                    && !touchesServerFields(request.resource.data.keys());
+      allow update: if isOwner(userId)
+                    && !touchesServerFields(request.resource.data.diff(resource.data).affectedKeys());
+      // Account deletion goes through the deleteAccount function (recursive, admin SDK).
+      allow delete: if false;
+
+      // Daily counters and the cost ledger are written only by Cloud Functions.
+      // Readable so the app can show them; never client-writable (resetting a counter
+      // would reset the cap).
+      match /limits/{day} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+      match /usage/{day} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
+      // Chat history is written by the chat functions. The client reads it live and may
+      // only record which proposed actions it has applied — never add, edit or remove
+      // messages (a client-written message would be fed back into the next LLM turn).
+      match /chat_threads/{threadId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+
+        match /messages/{messageId} {
+          allow read: if isOwner(userId);
+          allow create, delete: if false;
+          allow update: if isOwner(userId)
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['applied_actions']);
+        }
+      }
+
+      // One completion per recurring task per local day: the doc id must be
+      // "<task_id>_<date>", so a second completion for the same day is the same doc.
+      match /recurring_completions/{completionId} {
+        allow read, delete: if isOwner(userId);
+        allow create: if isOwner(userId)
+                      && request.resource.data.task_id is string
+                      && request.resource.data.date is string
+                      && completionId == request.resource.data.task_id + '_' + request.resource.data.date;
+        allow update: if false;
+      }
+
+      // Everything else (tasks, domains, recurring, meals, workouts, spends, categories,
+      // completed_tasks) the user owns outright. The collections above are excluded so
+      // this wildcard cannot grant what they deny.
+      match /{collection}/{docId} {
+        allow read, write: if isOwner(userId)
+                           && !(collection in ['limits', 'usage', 'chat_threads', 'recurring_completions']);
+      }
     }
   }
 }

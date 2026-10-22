@@ -7,6 +7,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { domainStrategyTurnFn } from '../lib/functions';
 import type { ProposedAction } from '../lib/functions';
+import { todayStr } from '../lib/dates';
 import { Colors, Typography, Spacing } from '../lib/tokens';
 import type { Domain } from '../lib/types';
 import ChatView, { type ChatMessage } from './ChatView';
@@ -42,7 +43,7 @@ export default function DomainStrategySheet({ visible, domain, onClose }: Props)
   };
 
   const sendTurn = async (message: string) => {
-    const result = await domainStrategyTurnFn({ message, threadId, domainId: domain.id });
+    const result = await domainStrategyTurnFn({ message, threadId, domainId: domain.id, clientDate: todayStr() });
     return result.data;
   };
 
